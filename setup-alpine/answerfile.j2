@@ -1,0 +1,30 @@
+# Template of the answer file for setup-alpine script
+# If you don't want to use a certain option, then comment it out
+
+# Use $keymap layout with $keymapvar variant
+KEYMAPOPTS="{{ keymap }} {{ keymapvar }}"
+
+# Set hostname
+HOSTNAMEOPTS="-n {{ hostname }}"
+
+# Contents of /etc/network/interfaces
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+    hostname alpine-test
+"
+
+# Set timezone
+TIMEZONEOPTS="-z {{ timezone }}"
+
+# Add the first mirror
+APKREPOSOPTS="-1"
+
+# Install Openssh
+SSHDOPTS="-c openssh"
+
+# Select NTP client
+NTPOPTS="-c {{ ntp_client }}"
+

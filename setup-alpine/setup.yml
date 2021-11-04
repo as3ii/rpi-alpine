@@ -1,0 +1,30 @@
+---
+- name: alpine bootstrap
+  gather_facts: false
+  hosts: all
+
+  vars:
+    keymap: "us"
+    keymapvar: "us-altgr-intl"
+    hostname: ""
+    interface: |
+      "auto lo
+      iface lo inet loopback
+
+      auto eth0
+      iface eth0 inet dhcp
+          hostname {{ hostname }}"
+
+    tiemzone: "UTC+1"
+    sshd: "openssh"
+    ntp_client: "chrony"
+
+  tasks:
+    - name: generate answerfile
+      template:
+        src: answerfile.j2
+        dest: "/tmp/answerfile"
+
+    - name: setup alpine
+      command: "setup-alpine -f /tmp/answerfile"
+
