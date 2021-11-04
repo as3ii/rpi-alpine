@@ -19,7 +19,8 @@ In the "Raspberry Pi" section select one of the possible archive:
     - `cd` into it
     - `tar xzf path/to/file.tar.gz`
 4. Run the following commands to set gpu_mem=32 and enable HDMI hotplug:
-    - `printf "\ngpu_mem=32\nhdmi_force_hotplug=1\n" >> config.txt`
+    - `printf "gpu_mem=32\n" >> config.txt`
+    - `printf "hdmi_force_hotplug=1\n" >> config.txt`
 5. Unmount the SD card, plug it in the RPi with keyboard and monitor
 6. Login using username "root" and empty password
 7. Run the following commands in the RPi terminal:
