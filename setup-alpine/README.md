@@ -2,8 +2,8 @@
 
 ## RPi preparation
 
-_Note: if you reboot the RPi during this phase you have to redo steps 5, 6 and
-the second point of step 7_
+_Note: if you reboot the RPi during this phase you have to redo steps 6, 7 and
+the second point of step 8_
 
 1. Partition the device:
     - MBR Partition Table
