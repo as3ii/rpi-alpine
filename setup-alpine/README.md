@@ -47,8 +47,8 @@ you accidentally reboot the RPi before completing the installation
 
 1. Install Ansible, some possible ways are:
     - using the package manager of your linux distribution
-    - using run `pip` to install ansible system-wide:
-        - `sudo pip install ansible`
+    - using `pip` to install ansible system-wide:
+        - run `sudo pip install ansible`
     - using `pip` to install ansible for the current user:
         - (optional) create a python's venv and activate it
         - run `pip install ansible`
