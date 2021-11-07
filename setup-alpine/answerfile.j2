@@ -2,29 +2,32 @@
 # If you don't want to use a certain option, then comment it out
 
 # Use $keymap layout with $keymapvar variant
-KEYMAPOPTS="{{ keymap }} {{ keymapvar }}"
+KEYMAPOPTS='{{ keymap }} {{ keymapvar }}'
 
 # Set hostname
-HOSTNAMEOPTS="-n {{ hostname }}"
+HOSTNAMEOPTS='-n {{ hostname }}'
 
 # Contents of /etc/network/interfaces
-INTERFACESOPTS="auto lo
+INTERFACESOPTS='auto lo
 iface lo inet loopback
 
 auto eth0
 iface eth0 inet dhcp
-    hostname alpine-test
-"
+    hostname {{ hostname }}
+'
 
 # Set timezone
-TIMEZONEOPTS="-z {{ timezone }}"
+TIMEZONEOPTS='-z {{ timezone }}'
+
+# set http/ftp proxy
+PROXYOPTS="none"
 
 # Add the first mirror
-APKREPOSOPTS="-1"
+APKREPOSOPTS='-1'
 
 # Install Openssh
-SSHDOPTS="-c openssh"
+SSHDOPTS='-c {{ sshd }}'
 
 # Select NTP client
-NTPOPTS="-c {{ ntp_client }}"
+NTPOPTS='-c {{ ntp_client }}'
 

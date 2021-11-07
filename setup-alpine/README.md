@@ -54,13 +54,15 @@ you accidentally reboot the RPi before completing the installation
         - run `pip install ansible`
 
     For more info see [the official documentation](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
-2. Clone this repository if you hadn't already done
-    - `git clone https://github.com/as3ii/rpi-alpine.git`
+2. Clone this repository if you haven't already, then `cd` into the repo folder
+    - `git clone https://github.com/as3ii/rpi-alpine.git && cd rpi-alpine`
 3. Edit the `inventory` file:
     - put in the right section the IP's of your RPi's
     - check if the ssh user and key are correct in the `rpis:vars` section
 
 ## Installation
-_To Do_
 
+1. Edit the variables in the `vars` section of `./setup-alpine/setup.yml`
+2. Run: `ansible-playbook ./setup-alpine/setup.yml` to start the installation
+    - if you want to see more infos, add `-v` at the end of the command before running it
 

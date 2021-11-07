@@ -6,25 +6,174 @@
   vars:
     keymap: "us"
     keymapvar: "us-altgr-intl"
-    hostname: ""
-    interface: |
-      "auto lo
-      iface lo inet loopback
-
-      auto eth0
-      iface eth0 inet dhcp
-          hostname {{ hostname }}"
-
-    tiemzone: "UTC+1"
+    timezone: "Europe/Rome"
     sshd: "openssh"
     ntp_client: "chrony"
 
   tasks:
-    - name: generate answerfile
-      template:
-        src: answerfile.j2
-        dest: "/tmp/answerfile"
+    - name: check
+      raw: /bin/sh -c '[ -x "$(command -v python3)"] && [ -x "$(command -v setup-alpine)"]'
+      failed_when: false
+      register: check
 
-    - name: setup alpine
-      command: "setup-alpine -f /tmp/answerfile"
+    - name: debug check.rc
+      debug:
+        var: check.rc
+        verbosity: 1
 
+    - block:
+        - name: base setup
+          block:
+            - name: preview generated hostname
+              debug:
+                msg: |-
+                  The hostname will be: {{
+                    group_names[0]
+                  }}-alpine-{{
+                    groups[group_names[0]].index(inventory_hostname)
+                  }}
+              when: (hostname is not defined) or (hostname|length == 0)
+
+            - name: generate hostname
+              set_fact:
+                hostname: |-
+                  {{ group_names[0] }}
+                  -alpine-
+                  {{ groups[group_names[0]].index(inventory_hostname) }}
+              when: (hostname is not defined) or (hostname|length == 0)
+
+            - name: preview generated answerfile
+              debug:
+                msg: "{{ lookup('template', 'answerfile.j2') }}"
+                verbosity: 1
+
+            - name: generate answerfile
+              # template:
+              #   src: answerfile.j2
+              #   dest: "/tmp/answerfile"
+              raw: echo "{{ lookup('template', 'answerfile.j2') }}" > /tmp/answerfile
+
+            - name: disable disk setup in "setup-alpine"
+              raw: sed -i '/^\$PREFIX\/sbin\/setup-sshd / s/$/\; exit 0/' /sbin/setup-alpine
+
+            - name: setup alpine
+              raw: "setup-alpine -e -f /tmp/answerfile"
+
+            - name: update apk index
+              raw: apk update
+
+            - name: instal python
+              raw: apk add python3
+
+        - name: alpine installation
+          block:
+            - name: install e2fsprogs
+              apk:
+                name: e2fsprogs
+
+            - name: mount root partition
+              command: mount /dev/mmcblk0p2 /mnt
+
+            - name: install alpine
+              shell: FORCE_BOOTFS=1 setup-disk -m sys /mnt
+
+            - name: remount in RW-mode boot partition
+              command: mount -o remount,rw /media/mmcblk0p1
+
+            - name: cleanup boot folder in the boot partition
+              command:
+                cmd: rm -f /media/mmcblk0p1/boot/*
+                removes: /media/mmcblk0p1/boot/*
+
+            - name: drop the unused symbolic link
+              command:
+                cmd: rm /mnt/boot/boot
+                removes: /mnt/boot/boot
+
+            # move the image and 'init ram'
+            - name: mv /mnt/boot/* /media/mmcblk0p1/boot/
+              command:
+                cmd: mv /mnt/boot/* /media/mmcblk0p1/boot/
+                removes: /mnt/boot/*
+                creates: /media/mmcblk0p1/boot/*
+
+            - name: remove /mnt/boot
+              command:
+                cmd: rm -Rf /mnt/boot
+                removes: /mnt/boot
+
+            - name: create /mnt/media/mmcblk0p1 directory
+              command:
+                cmd: mkdir /mnt/media/mmcblk0p1
+                creates: /mnt/media/mmcblk0p1
+
+            - name: "inside /mnt: ln -s media/mmcblk0p1/boot boot"
+              command:
+                cmd: ln -s media/mmcblk0p1/boot boot
+                chdir: /mnt
+                creates: /mnt/boot
+            # end
+
+            # update fstab
+            - command: |-
+                echo "/dev/mmcblk0p1 /media/mmcblk0p1 vfat defaults 0 0"
+                >> /mnt/etc/fstab
+
+            - replace:
+                path: /mnt/etc/fstab
+                regexp: 'cdrom'
+                replace: ''
+
+            - replace:
+                path: /mnt/etc/fstab
+                regexp: 'floppy'
+                replace: ''
+            # end
+
+            - name: enable community repository
+              replace:
+                path: /mnt/etc/apk/repositories
+                regexp: 'community'
+                replace: '^#//'
+
+            - name: update cmdline.txt
+              command: sed -i 's/$/ root=\/dev\/mmcblk0p2 /' /media/mmcblk0p1/cmdline.txt
+
+          rescue:
+            - name: unmount /mnt
+              command: umount /mnt
+
+        - name: install ssh key to the installed system
+          copy:
+            remote_src: true
+            src: /root/.ssh/authorized_keys
+            dest: /mnt/root/.ssh/authorized_keys
+
+        - name: disable ssh root login wit password
+          replace:
+            path: /mnt/etc/ssh/sshd_config
+            regexp: "^PermitRootLogin.*$"
+            replace: "PermitRootLogin prohibit-password"
+            validate: sshd -T
+
+        - reboot:
+      when: check.rc > 0
+
+    - name: disable and stop hardware clock
+      service:
+        name: hwclock
+        status: stopped
+        enabled: false
+
+    - name: enable and start software clock
+      service:
+        name: hwclock
+        status: started
+        enabled: true
+        runlevel: boot
+
+
+    - name: system update and upgrade
+      apk:
+        update_cache: true
+        upgrade: true
