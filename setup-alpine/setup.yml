@@ -122,31 +122,29 @@
 
             # update fstab
             - name: add fstab entry to mount boot partition
-              command: |-
-                echo "/dev/mmcblk0p1 /media/mmcblk0p1 vfat defaults 0 0"
-                >> /mnt/etc/fstab
+              command: |
+                echo "/dev/mmcblk0p1 /media/mmcblk0p1 vfat defaults 0 0" >> /mnt/etc/fstab
 
             - name: remove cdrom entry from fstab
               replace:
                 path: /mnt/etc/fstab
-                regexp: 'cdrom'
+                regexp: '^.*cdrom.*$'
                 replace: ''
 
             - name: remove floppy entry from fstab
               replace:
                 path: /mnt/etc/fstab
-                regexp: 'floppy'
+                regexp: '^.*floppy.*$'
                 replace: ''
             # end
 
             - name: enable community repository
-              replace:
-                path: /mnt/etc/apk/repositories
-                regexp: 'community'
-                replace: '^#//'
+              command: |
+                sed -i '/alpine\/v[0-9]+\.[0-9]+\/community/ s/^#//' /mnt/etc/apk/repositories
 
             - name: update cmdline.txt
-              command: sed -i 's/$/ root=\/dev\/mmcblk0p2 /' /media/mmcblk0p1/cmdline.txt
+              command: |
+                sed -i 's/$/ root=\/dev\/mmcblk0p2 /' /media/mmcblk0p1/cmdline.txt
 
           rescue:
             - name: unmount /mnt
@@ -176,12 +174,6 @@
         - reboot:
       when: check.rc > 0
 
-    - name: disable and stop hardware clock
-      service:
-        name: hwclock
-        state: stopped
-        enabled: false
-
     - name: enable and start software clock
       service:
         name: hwclock
@@ -189,6 +181,12 @@
         enabled: true
         runlevel: boot
 
+    - name: disable and stop hardware clock
+      service:
+        name: hwclock
+        state: stopped
+        enabled: false
+        runlevel: boot
 
     - name: system update and upgrade
       apk:
