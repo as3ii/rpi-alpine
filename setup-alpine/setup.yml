@@ -15,14 +15,17 @@
       raw: /bin/sh -c '[ -x "$(command -v python3)"] && [ -x "$(command -v setup-alpine)"]'
       failed_when: false
       register: check
+      tags: ["always"]
 
     - name: debug check.rc
       debug:
         var: check.rc
         verbosity: 1
+      tags: ["always", "debug"]
 
     - block:
         - name: base setup
+          tags: ["base_setup"]
           block:
             - name: preview generated hostname
               debug:
@@ -33,6 +36,7 @@
                     groups[group_names[0]].index(inventory_hostname)
                   }}
               when: (hostname is not defined) or (hostname|length == 0)
+              tags: ['debug']
 
             - name: generate hostname
               set_fact:
@@ -46,6 +50,7 @@
               debug:
                 msg: "{{ lookup('template', 'answerfile.j2') }}"
                 verbosity: 1
+              tags: ["debug"]
 
             - name: generate answerfile
               # template:
@@ -66,6 +71,7 @@
               raw: apk add python3
 
         - name: alpine installation
+          tags: ["alpine_installation"]
           block:
             - name: install e2fsprogs
               apk:
@@ -115,16 +121,19 @@
             # end
 
             # update fstab
-            - command: |-
+            - name: add fstab entry to mount boot partition
+              command: |-
                 echo "/dev/mmcblk0p1 /media/mmcblk0p1 vfat defaults 0 0"
                 >> /mnt/etc/fstab
 
-            - replace:
+            - name: remove cdrom entry from fstab
+              replace:
                 path: /mnt/etc/fstab
                 regexp: 'cdrom'
                 replace: ''
 
-            - replace:
+            - name: remove floppy entry from fstab
+              replace:
                 path: /mnt/etc/fstab
                 regexp: 'floppy'
                 replace: ''
@@ -143,6 +152,14 @@
             - name: unmount /mnt
               command: umount /mnt
 
+        - name: ensure /mnt/root/.ssh/ exists
+          file:
+            path: /mnt/root/.ssh/
+            state: directory
+            owner: root
+            group: root
+            mode: 0700
+
         - name: install ssh key to the installed system
           copy:
             remote_src: true
@@ -154,7 +171,7 @@
             path: /mnt/etc/ssh/sshd_config
             regexp: "^PermitRootLogin.*$"
             replace: "PermitRootLogin prohibit-password"
-            validate: sshd -T
+            validate: "sshd -t -f %s"
 
         - reboot:
       when: check.rc > 0
@@ -162,13 +179,13 @@
     - name: disable and stop hardware clock
       service:
         name: hwclock
-        status: stopped
+        state: stopped
         enabled: false
 
     - name: enable and start software clock
       service:
         name: hwclock
-        status: started
+        state: started
         enabled: true
         runlevel: boot
 
