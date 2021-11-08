@@ -25,7 +25,7 @@ In the "Raspberry Pi" section select one of the possible archive:
 6. Login using username "root" and empty password
 7. Run the following commands in the RPi terminal:
     - (optional) `setup-keymap`: setup keyboard layout
-    - `passwd`: set a temporary root password
+    - `passwd`: set a strong and complicated root password
     - `setup-interfaces`: setup the eth0 network interface
     - `/etc/init.d/networking start`: start the network stack
     - `setup-sshd`: install ssh server and enable the service
